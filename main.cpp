@@ -1,11 +1,13 @@
 #include <SFML/Graphics.hpp>
+#include <sstream>
+#include <iostream>
 using namespace sf;
-char coord_line, coor;
-char num_x, num_y, address_cell[5], count, coor_ceil_x, coor_ceil_y;
+int num_x, num_y, coor_ceil_x, coor_ceil_y, coord_line, coor;
+int address_cell[5], count, number;
 bool white_move = true, move = false, king = false;
 struct pair{
-	char one;
-	char two;
+	int one;
+	int two;
 };
 pair coordinate(int line_x) {
 	if (35 <= line_x)
@@ -104,14 +106,14 @@ int main() {
 			coord_y += 88;
 		}
 	}
+	for (char i = 0; i < 4; i++)
+		address_cell[i] = 0;
 	white_move = true;
 	while (window.isOpen()) {
 		Vector2i pixelPos = Mouse::getPosition(window);//забираем коорд курсора
 		Vector2f pos = window.mapPixelToCoords(pixelPos);//переводим их в игровые (уходим от коорд окна)
 		sf::Event event;
 		while (window.pollEvent(event)) {
-			for (char i = 0; i < 4; i++)
-				address_cell[i] = 0;
 			if (event.type == sf::Event::Closed)
 				window.close();
 			if (event.type == Event::MouseButtonPressed)//если нажата клавиша мыши
@@ -145,7 +147,7 @@ int main() {
 					res = coordinate(pos.y);
 					num_y = res.one; coor_ceil_y = res.two;
 					count = 0;
-					if (white_move) //проверка на допустимые ходы
+					if (white_move) { //проверка на допустимые ходы
 						if (num_y != 8) {
 							if (num_x != 8) {
 								if (mass[(num_x + 1) * 10 + (num_y + 1)] == 1)
@@ -176,36 +178,41 @@ int main() {
 
 							}
 						}
-						else
-							if (num_y != 1) {
-								if (num_x != 8) {
-									if (mass[(num_x + 1) * 10 + (num_y - 1)] == 2)
-										if (num_y > 2)
-											if (num_x < 7)
-												if (mass[(num_x + 2) * 10 + (num_y - 2)] == 0) {
-													address_cell[count] = (num_x + 2) * 10 + (num_y - 2);
-													count += 1;
-												}
-									if (mass[(num_x + 1) * 10 + (num_y - 1)] == 0) {
-										address_cell[count] = (num_x + 1) * 10 + (num_y - 1);
-										count += 1;
-									}
-								}
-								if (num_x != 1) {
-									if (mass[(num_x - 1) * 10 + (num_y - 1)] == 2) {
-										if (num_y > 2)
-											if (num_x > 2)
-												if (mass[(num_x - 2) * 10 + (num_y - 2)] == 0) {
-													address_cell[count] = (num_x - 2) * 10 + (num_y - 2);
-													count += 1;
-												}
-									}
-									if (mass[(num_x - 1) * 10 + (num_y - 1)] == 0) {
-										address_cell[count] = (num_x - 1) * 10 + (num_y - 1);
-										count += 1;
-									}
+					}
+					else {
+						if (num_y != 1) {
+							if (num_x != 8) {
+								if (mass[(num_x + 1) * 10 + (num_y - 1)] == 2)
+									if (num_y > 2)
+										if (num_x < 7)
+											if (mass[(num_x + 2) * 10 + (num_y - 2)] == 0) {
+												address_cell[count] = (num_x + 2) * 10 + (num_y - 2);
+												count += 1;
+											}
+								if (mass[(num_x + 1) * 10 + (num_y - 1)] == 0) {
+									address_cell[count] = (num_x + 1) * 10 + (num_y - 1);
+									count += 1;
 								}
 							}
+							if (num_x != 1) {
+								if (mass[(num_x - 1) * 10 + (num_y - 1)] == 2) {
+									if (num_y > 2)
+										if (num_x > 2)
+											if (mass[(num_x - 2) * 10 + (num_y - 2)] == 0) {
+												address_cell[count] = (num_x - 2) * 10 + (num_y - 2);
+												count += 1;
+											}
+								}
+								if (mass[(num_x - 1) * 10 + (num_y - 1)] == 0) {
+									address_cell[count] = (num_x - 1) * 10 + (num_y - 1);
+									count += 1;
+								}
+							}
+						}
+					}
+					for (char i = count; (i < 4); i++) {
+						address_cell[count] = 0;
+					}
 				}
 			if (event.type == Event::MouseButtonReleased)//если отпустили клавишу
 				if (event.key.code == Mouse::Left) {//а именно левую
@@ -217,15 +224,24 @@ int main() {
 					num_x = res.one; coor_ceil_x = res.two;
 					res = coordinate(pos.y);
 					num_y = res.one; coor_ceil_y = res.two;
+					std::cout << "num_x = " << num_x;
+					std::cout << "num_y = " << num_y;
+					number = num_x * 10 + num_y;
+					std::cout << "assa = " << number;
 					for (char i = 0; i < 4; i++) {
 						if ((num_x * 10 + num_y) == address_cell[i])
 							move = true;
+						std::cout << "address = " << address_cell[i];
 					}
 					if (move)
-						if (white_move)
+						if (white_move) {
 							whitesprite[num].setPosition(coor_ceil_x, coor_ceil_y);
-						else
+							white_move = false;
+						}
+						else {
 							blacksprite[num].setPosition(coor_ceil_x, coor_ceil_y);
+							white_move = true;
+						}
 					else
 						if (white_move)
 							whitesprite[num].setPosition(coord_x, coord_y);
