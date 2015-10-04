@@ -257,9 +257,14 @@ int main() {
 									mass[num_x * 10 + num_y] = 2;
 									if (cut)
 										for (char i = 0; i < 12; i++)
-											if (blacksprite[i].getGlobalBounds().contains((coor_ceil_x - coord_x) / 2, (coor_ceil_y - coord_y)) / 2) {
+											if (blacksprite[i].getGlobalBounds().contains(coord_x + ((coor_ceil_x - coord_x) / 2), coord_y + ((coor_ceil_y - coord_y) / 2))) {
 												carved_black[count_carv_black] = i;
 												count_carv_black += 1;
+												res = coordinate(coord_x + ((coor_ceil_x - coord_x) / 2));
+												num_x = res.one; coor_ceil_x = res.two;
+												res = coordinate(coord_y + ((coor_ceil_y - coord_y) / 2));
+												num_y = res.one; coor_ceil_y = res.two;
+												mass[num_x * 10 + num_y] = 0;
 											}
 								}
 								else {
@@ -268,9 +273,14 @@ int main() {
 									mass[num_x * 10 + num_y] = 1;
 									if (cut)
 										for (char i = 0; i < 12; i++)
-											if (whitesprite[i].getGlobalBounds().contains((coor_ceil_x - coord_x) / 2, (coor_ceil_y - coord_y)) / 2) {
+											if (whitesprite[i].getGlobalBounds().contains(coord_x + ((coor_ceil_x - coord_x) / 2), coord_y + ((coor_ceil_y - coord_y) / 2))) {
 												carved_white[count_carv_white] = i;
 												count_carv_white += 1;
+												res = coordinate(coord_x + ((coor_ceil_x - coord_x) / 2));
+												num_x = res.one; coor_ceil_x = res.two;
+												res = coordinate(coord_y + ((coor_ceil_y - coord_y) / 2));
+												num_y = res.one; coor_ceil_y = res.two;
+												mass[num_x * 10 + num_y] = 0;
 											}
 								}
 								res = coordinate(coord_x);
@@ -299,13 +309,11 @@ int main() {
 				}
 			}
 		}
-		draw = true;
 		window.clear();
 		window.draw(mapssprite);
-		std::cout << "schetchik" << count_carv_black;
 		for (char i = 0; i < 12; i++) {
+			draw = true;
 			for (char j = 0; j < count_carv_white; j++) {
-				std::cout << "cut" << carved_white[j];
 				if (carved_white[j] == i)
 					draw = false;
 			}
@@ -313,7 +321,6 @@ int main() {
 				window.draw(whitesprite[i]);
 			draw = true;
 			for (char j = 0; j < count_carv_black; j++) {
-				std::cout << "cut" << carved_black[j];
 				if (carved_black[j] == i)
 					draw = false;
 			}
