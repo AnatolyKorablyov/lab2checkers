@@ -4,131 +4,293 @@
 
 using namespace sf;
 
-int num_x, num_y, coor_ceil_x, coor_ceil_y, coord_line, coor;
-int address_cell[5], count, number, upgrade_white, upgrade_black;
-int carved_white[13], carved_black[13], count_carv_black, count_carv_white, count_king_white, count_king_black;
-int carved_king_white[13], carved_king_black[13], number_end;
-bool white_move = true, move = false, king = false, draw;
+void arrangement_map(Sprite mapsprite[8][8], Texture & maptexture, float cord_x, float cord_y) {
+	for (int i = 0; i < 8; i++) {
+		for (int j = 0; j < 8; j++) {
+			mapsprite[i][j].setTexture(maptexture);
+			mapsprite[i][j].setPosition(cord_x, cord_y);
+			cord_x += 88;
+			if (cord_x == 739) {
+				cord_x = 35;
+				cord_y += 88;
+			}
+		}
+	}
+}
+// функция расстановки шашек
+void arrangement_of_checkers(Sprite king_checker[13], Texture & king_texture, Sprite checker[13], Texture & ch_texture, float cord_x, float cord_y) {
+	for (int i = 0; i < 12; i++) {
+		king_checker[i].setTexture(king_texture);
+		king_checker[i].setPosition(900, 900);
+		checker[i].setTexture(ch_texture);
+		checker[i].setPosition(cord_x, cord_y);
+		cord_x += 176;
+		if (cord_x == 739) {
+			cord_x = 123;
+			cord_y += 88;
+		}
+		if (cord_x == 827) {
+			cord_x = 35;
+			cord_y += 88;
+		}
+	}
+}
 
-struct pair{
+struct pair {
 	int one;
 	int two;
 };
-
-pair coordinate(int line_x) {
-	if (35 <= line_x)
-		if (line_x < 123) {
-			coord_line = 1;
-			coor = 35;
-		}
-	if (123 <= line_x)
-		if (line_x < 211) {
-			coord_line = 2;
-			coor = 123;
-		}
-	if (211 <= line_x)
-		if (line_x < 299) {
-			coord_line = 3;
-			coor = 211;
-		}
-	if (299 <= line_x)
-		if (line_x < 387) {
-			coord_line = 4;
-			coor = 299;
-		}
-	if (387 <= line_x)
-		if (line_x < 475) {
-			coord_line = 5;
-			coor = 387;
-		}
-	if (475 <= line_x)
-		if (line_x < 563) {
-			coord_line = 6;
-			coor = 475;
-		}
-	if (563 <= line_x)
-		if (line_x < 651) {
-			coord_line = 7;
-			coor = 563;
-		}
-	if (651 <= line_x)
-		if (line_x <= 739) {
-			coord_line = 8;
-			coor = 651;
-		}
+//функция определения ячейки
+pair coordinate(float line_x) {
+	int coord_line = -1;
+	int coor = 900;
+	int const_coord[10] = { 35, 123, 211, 299, 387, 475, 563, 651, 739 };
+	if ((const_coord[0] <= line_x) && (line_x < const_coord[1])) {
+		coord_line = 0;
+		coor = 35;
+	}
+	if ((const_coord[1] <= line_x) && (line_x < const_coord[2])) {
+		coord_line = 1;
+		coor = 123;
+	}
+	if ((const_coord[2] <= line_x) && (line_x < const_coord[3])) {
+		coord_line = 2;
+		coor = 211;
+	}
+	if ((const_coord[3] <= line_x) && (line_x < const_coord[4])) {
+		coord_line = 3;
+		coor = 299;
+	}
+	if ((const_coord[4] <= line_x) && (line_x < const_coord[5])) {
+		coord_line = 4;
+		coor = 387;
+	}
+	if ((const_coord[5] <= line_x) && (line_x < const_coord[6])) {
+		coord_line = 5;
+		coor = 475;
+	}
+	if ((const_coord[6] <= line_x) && (line_x < const_coord[7])) {
+		coord_line = 6;
+		coor = 563;
+	}
+	if ((const_coord[7] <= line_x) && (line_x < const_coord[8])) {
+		coord_line = 7;
+		coor = 651;
+	}
 	pair result;
 	result.one = coord_line;
 	result.two = coor;
 	return result;
 }
-int main() {
+struct motion {
+	int start_x, start_y, mov_x, mov_y, num_spr;
+	bool isMov;
+};
+motion move_object(Sprite obje[13], int position_x, int position_y) {
+	motion result;
+	bool ch_bol = false;
+	for (char i = 0; i < 12; i++)
+		if (obje[i].getGlobalBounds().contains(position_x, position_y))//и при этом координата курсора попадает в спрайт
+		{
+			result.start_x = obje[i].getPosition().x;
+			result.start_y = obje[i].getPosition().y;
+			result.mov_x = position_x - obje[i].getPosition().x;//делаем разность между позицией курсора и спрайта.для корректировки нажатия
+			result.mov_y = position_y - obje[i].getPosition().y;//тоже самое по игреку
+			result.isMov = true;//можем двигать спрайт
+			result.num_spr = i;
+			ch_bol = true;
+		}
+	if (ch_bol == false) {
+		result.start_x = -1;
+		result.start_y = -1;
+		result.mov_x = -1;
+		result.mov_y = -1;
+		result.isMov = false;
+		result.num_spr = -1;
+	}
+	return result;
+}
+bool check_safe_move(int num_x, int num_y, int chess_board[8][8]) {
+	int const_checker[3];
+	bool safe = false;
+	const_checker[0] = 1;
+	const_checker[1] = 3;
+	if ((chess_board[num_y - 1][num_x + 1] != const_checker[0]) && (chess_board[num_y - 1][num_x + 1] != const_checker[1]) &&
+		(chess_board[num_y - 1][num_x - 1] != const_checker[0]) && (chess_board[num_y - 1][num_x - 1] != const_checker[1]))
+		safe = true;
+	return safe;
+}
+struct ret_check {
+	bool one;
+	int two[5][3];
+};
+ret_check check_move(bool & white_move, bool & queen, int num_x, int num_y, int chess_board[8][8]) {
+	int const_checker[3];
+	int count = 0;
+	int address_move[5][3]; 
+	bool cut = false;
+	bool check_up = false, check_down = false;
+	if (white_move) {
+		const_checker[0] = 1;
+		const_checker[1] = 3;
+		check_down = true;
+	}
+	else {
+		const_checker[0] = 2;
+		const_checker[1] = 4;
+		check_up = true;
+	}
+	if (queen) {
+		check_down = true;
+		check_up = true;
+	}
+	if ((num_y != 0) && (num_x != 7) && check_up) {
+		if (((chess_board[num_y - 1][num_x + 1] == const_checker[0]) || (chess_board[num_y - 1][num_x + 1] == const_checker[1])) && (num_y > 1) && (num_x < 6)) {
+			if (chess_board[num_y - 2][num_x + 2] == 0) {
+				if (cut == false)
+					count = 0;
+				address_move[count][0] = num_y - 2;
+				address_move[count][1] = num_x + 2;
+				count += 1;
+				cut = true;
+			}
+		}
+		if ((chess_board[num_y - 1][num_x + 1] == 0) && (cut == false)) {
+			address_move[count][0] = num_y - 1;
+			address_move[count][1] = num_x + 1;
+			count += 1;
+		}
+	}
+	if ((num_y != 0) && (num_x != 0) && check_up) {
+		if (((chess_board[num_y - 1][num_x - 1] == const_checker[0]) || (chess_board[num_y - 1][num_x - 1] == const_checker[1])) && (num_y > 1) && (num_x > 1)) {
+			if (chess_board[num_y - 2][num_x - 2] == 0) {
+				if (cut == false)
+					count = 0;
+				address_move[count][0] = num_y - 2;
+				address_move[count][1] = num_x - 2;
+				count += 1;
+				cut = true;
+			}
+		}
+		if ((chess_board[num_y - 1][num_x - 1] == 0) && (cut == false)) {
+			address_move[count][0] = num_y - 1;
+			address_move[count][1] = num_x - 1;
+			count += 1;
+		}
+	}
+	if ((num_y != 7) && (num_x != 7) && check_down) {
+		if (((chess_board[num_y + 1][num_x + 1] == const_checker[0]) || (chess_board[num_y + 1][num_x + 1] == const_checker[1])) && (num_y < 6) && (num_x < 6)) {
+			if (chess_board[num_y + 2][num_x + 2] == 0) {
+				if (cut == false)
+					count = 0;
+				address_move[count][0] = num_y + 2;
+				address_move[count][1] = num_x + 2;
+				count += 1;
+				cut = true;
+			}
+		}
+		if ((chess_board[num_y + 1][num_x + 1] == 0) && (cut == false)) {
+			address_move[count][0] = num_y + 1;
+			address_move[count][1] = num_x + 1;
 
-	RenderWindow window(sf::VideoMode(780, 780), "game");
-	Texture whitetexture, blacktexture, mapstexture, king_whitetexture, king_blacktexture;
-	whitetexture.loadFromFile("images/white.png");
-	blacktexture.loadFromFile("images/black.png");
-	mapstexture.loadFromFile("Images/checkers_780.png");
-	king_whitetexture.loadFromFile("images/king_white.png");
-	king_blacktexture.loadFromFile("images/king_black.png");
-	Sprite mapssprite;
-	mapssprite.setTexture(mapstexture);
-	mapssprite.setPosition(0, 0);
-	int mass[89];
-	mass[11] = 2; mass[21] = 5; mass[31] = 2; mass[41] = 5; mass[51] = 2; mass[61] = 5; mass[71] = 2; mass[81] = 5;
-	mass[12] = 5; mass[22] = 2; mass[32] = 5; mass[42] = 2; mass[52] = 5; mass[62] = 2; mass[72] = 5; mass[82] = 2;
-	mass[13] = 2; mass[23] = 5; mass[33] = 2; mass[43] = 5; mass[53] = 2; mass[63] = 5; mass[73] = 2; mass[83] = 5;
-	mass[14] = 5; mass[24] = 0; mass[34] = 5; mass[44] = 0; mass[54] = 5; mass[64] = 0; mass[74] = 5; mass[84] = 0;
-	mass[15] = 0; mass[25] = 5; mass[35] = 0; mass[45] = 5; mass[55] = 0; mass[65] = 5; mass[75] = 0; mass[85] = 5;
-	mass[16] = 5; mass[26] = 1; mass[36] = 5; mass[46] = 1; mass[56] = 5; mass[66] = 1; mass[76] = 5; mass[86] = 1;
-	mass[17] = 1; mass[27] = 5; mass[37] = 1; mass[47] = 5; mass[57] = 1; mass[67] = 5; mass[77] = 1; mass[87] = 5;
-	mass[18] = 5; mass[28] = 1; mass[38] = 5; mass[48] = 1; mass[58] = 5; mass[68] = 1; mass[77] = 5; mass[88] = 1;
-	Sprite whitesprite[13], blacksprite[13], king_whitesprite[13], king_blacksprite[13];
-	int coord_x = 35, coord_y = 35;
+
+			count += 1;
+		}
+	}
+	if ((num_y != 7) && (num_x != 0) && check_down) {
+		if (((chess_board[num_y + 1][num_x - 1] == const_checker[0]) || (chess_board[num_y + 1][num_x - 1] == const_checker[1])) && (num_y < 6) && (num_x > 1)) {
+			if (chess_board[num_y + 2][num_x - 2] == 0) {
+				if (cut == false)
+					count = 0;
+				address_move[count][0] = num_y + 2;
+				address_move[count][1] = num_x - 2;
+				count += 1;
+				cut = true;
+			}
+		}
+		if ((chess_board[num_y + 1][num_x - 1] == 0) && (cut == false)) {
+			address_move[count][0] = num_y + 1;
+			address_move[count][1] = num_x - 1;
+			count += 1;
+		}
+	}
+	for (char i = count; (i < 4); i++) {
+		address_move[i][0] = -1;
+		address_move[i][1] = -1;
+	}
+	ret_check result;
+	result.one = cut;
+	for (char i = 0; i < 4; i++) {
+		result.two[i][0] = address_move[i][0];
+		result.two[i][1] = address_move[i][1];
+	}
+	result.two[4][0] = -1;
+	result.two[4][1] = -1;
+	return result;
+}
+
+int main() {
+	Font font;//шрифт 
+	font.loadFromFile("images/CyrilicOld.ttf");//передаем нашему шрифту файл шрифта
+	Text text("", font, 40);//создаем объект текст. закидываем в объект текст строку, шрифт, размер шрифта(в пикселях);//сам объект текст (не строка)
+	text.setColor(Color::Blue);//покрасили текст в красный. если убрать эту строку, то по умолчанию он белый
+	text.setStyle(sf::Text::Bold | sf::Text::Underlined);//жирный и подчеркнутый текст. по умолчанию он "худой":)) и не подчеркнутый
+	pair ret;
+	ret_check res;
+	motion answer;
+	//bool safely = false;
+	int che_num, cut_move[13][5], number_el;
+	int bot_move[13][3], moved_bot[24][5];
+	int num_x_start, num_y_start, num_x_end, num_y_end;
+	int const_coords[10] = { 35, 123, 211, 299, 387, 475, 563, 651, 739 };
+	int const_pos[3];
+	//bool mov_cut = false;
+	//int address_move[5][3];
+	int num_x, num_y, coor_ceil_x, coor_ceil_y;
+	int address_cell[5][3], count, number, upgrade_white, upgrade_black;
+	int carved_white[13], carved_black[13], count_carv_black, count_carv_white, count_king_white, count_king_black;
+	int carved_king_white[13], carved_king_black[13], number_end;
+	bool white_move = true, move = false, king = false, draw;
 	int dX, dY;
 	char num;
-	bool isMove, cut;
-	for (char i = 0; i < 12; i++) { // цикл расстановки белых шашек
-		king_whitesprite[i].setTexture(king_whitetexture);
-		king_whitesprite[i].setPosition(900, 900);
-		carved_white[i] = 0;
-		carved_black[i] = 0;
-		whitesprite[i].setTexture(whitetexture);
-		whitesprite[i].setPosition(coord_x, coord_y);
-		coord_x += 176;
-		if (coord_x == 739) {
-			coord_x = 123;
-			coord_y += 88;
-		}
-		if (coord_x == 827) {
-			coord_x = 35;
-			coord_y += 88;
-		}
-	}
-	coord_x = 123; coord_y = 475;
-	for (char i = 0; i < 12; i++) { // цикл расстановки черных шашек
-		king_blacksprite[i].setTexture(king_blacktexture);
-		king_blacksprite[i].setPosition(900, 900);
-		blacksprite[i].setTexture(blacktexture);
-		blacksprite[i].setPosition(coord_x, coord_y);
-		coord_x += 176;
-		if (coord_x == 739) {
-			coord_x = 123;
-			coord_y += 88;
-		}
-		if (coord_x == 827) {
-			coord_x = 35;
-			coord_y += 88;
-		}
-	}
+	bool isMove = false, cut, safe, cut_mode = false;
+	bool queen = false;
+	int count_res, count_bot_move, count_cut, mass_cut[6][3];
+	int coord_x = 35, coord_y = 35; // 35? 35
+	RenderWindow window(sf::VideoMode(780, 780), "game");
+	Texture whitetexture, blacktexture, king_whitetexture, king_blacktexture, maptexture, maptexture_wall;
+	whitetexture.loadFromFile("images/white.png");
+	blacktexture.loadFromFile("images/black.png");
+	maptexture.loadFromFile("images/mapp.png");
+	maptexture_wall.loadFromFile("images/checkers_780.png");
+	king_whitetexture.loadFromFile("images/king_white.png");
+	king_blacktexture.loadFromFile("images/king_black.png");
+	int chess_board[8][8] =
+	{
+		{ 2, 5, 2, 5, 2, 5, 2, 5 },
+		{ 5, 2, 5, 2, 5, 2, 5, 2 },
+		{ 2, 5, 2, 5, 2, 5, 2, 5 },
+		{ 5, 0, 5, 0, 5, 0, 5, 0 },
+		{ 0, 5, 0, 5, 0, 5, 0, 5 },
+		{ 5, 1, 5, 1, 5, 1, 5, 1 },
+		{ 1, 5, 1, 5, 1, 5, 1, 5 },
+		{ 5, 1, 5, 1, 5, 1, 5, 1 }
+	};
+	Sprite whitesprite[13], blacksprite[13], king_whitesprite[13], king_blacksprite[13], mapsprite[8][8], mapsprite_wall;
+	mapsprite_wall.setTexture(maptexture_wall);
+	mapsprite_wall.setPosition(0, 0);
+	arrangement_map(mapsprite, maptexture, coord_x, coord_y);
+	coord_x = 35; coord_y = 35;
+	arrangement_of_checkers(king_whitesprite, king_whitetexture, whitesprite, whitetexture, coord_x, coord_y);
+	coord_x = 123; coord_y = 475; // 123? 475
+	arrangement_of_checkers(king_blacksprite, king_blacktexture, blacksprite, blacktexture, coord_x, coord_y);
 	num = -1;
 	white_move = true;
-	move = false;
 	count_carv_white = 0;
 	count_carv_black = 0;
 	count_king_black = 0;
 	count_king_white = 0;
 	upgrade_white = 0; upgrade_black = 0;
-	bool queen = false;
 	while (window.isOpen()) {
 		Vector2i pixelPos = Mouse::getPosition(window);//забираем коорд курсора
 		Vector2f pos = window.mapPixelToCoords(pixelPos);//переводим их в игровые (уходим от коорд окна)
@@ -136,363 +298,334 @@ int main() {
 		while (window.pollEvent(event)) {
 			if (event.type == sf::Event::Closed)
 				window.close();
-			if (event.type == Event::MouseButtonPressed)//если нажата клавиша мыши
-				if (event.key.code == Mouse::Left) {//а именно левая
-					isMove = false;
-					for (char i = 0; i < 4; i++)
-						address_cell[i] = 0;
-					if (white_move) {
-						for (char i = 0; i < 12; i++) {
-							if (whitesprite[i].getGlobalBounds().contains(pos.x, pos.y))//и при этом координата курсора попадает в спрайт
-							{
-								coord_x = whitesprite[i].getPosition().x;
-								coord_y = whitesprite[i].getPosition().y;
-								dX = pos.x - whitesprite[i].getPosition().x;//делаем разность между позицией курсора и спрайта.для корректировки нажатия
-								dY = pos.y - whitesprite[i].getPosition().y;//тоже самое по игреку
-								isMove = true;//можем двигать спрайт
-								num = i;
-								std::cout << "white ";
+			if (white_move) {
+				const_pos[0] = 2;
+				const_pos[1] = 4;
+			}
+			else {
+				const_pos[0] = 1;
+				const_pos[1] = 3;
+			}
+			move = false;
+			if (isMove == false) {
+				count_bot_move = 0;
+				count_cut = 0;
+				cut_mode = false;
+				for (int i = 0; i < 8; i++)
+					for (int j = 0; j < 8; j++) {
+						if ((chess_board[i][j] == const_pos[0]) || (chess_board[i][j] == const_pos[1])) {
+							if (white_move == false) {
+								bot_move[count_bot_move][0] = j; bot_move[count_bot_move][1] = i;
+								count_bot_move += 1;
 							}
-							if (king_whitesprite[i].getGlobalBounds().contains(pos.x, pos.y))//и при этом координата курсора попадает в спрайт
-							{
-								coord_x = king_whitesprite[i].getPosition().x;
-								coord_y = king_whitesprite[i].getPosition().y;
-								dX = pos.x - king_whitesprite[i].getPosition().x;//делаем разность между позицией курсора и спрайта.для корректировки нажатия
-								dY = pos.y - king_whitesprite[i].getPosition().y;//тоже самое по игреку
-								isMove = true;//можем двигать спрайт
-								num = i;
-								queen = true;
-								std::cout << "white king ";
+							else {
+								res = check_move(white_move, queen, j, i, chess_board);
+								cut = res.one;
+								if (cut) {
+									cut_mode = true;
+									mass_cut[count_cut][0] = j; mass_cut[count_cut][1] = i;
+									count_cut += 1;
+								}
+								count_res = 0;
+								while ((res.two[count_res][0] != -1) && (res.two[count_res][1] != -1)) {
+									mapsprite[res.two[count_res][0]][res.two[count_res][1]].setColor(Color::Red);
+									count_res += 1;
+								}
 							}
 						}
 					}
+			}
+			if (cut_mode) {
+				for (char i = 0; i < 8; i++)
+					for (char j = 0; j < 8; j++)
+						mapsprite[i][j].setColor(Color::White);
+				for (int i = 0; i < count_cut;i++) {
+					res = check_move(white_move, queen, mass_cut[i][0], mass_cut[i][1], chess_board);
+					count_res = 0;
+					while ((res.two[count_res][0] != -1) && (res.two[count_res][1] != -1)) {
+						mapsprite[res.two[count_res][0]][res.two[count_res][1]].setColor(Color::Red);
+						count_res += 1;
+					}
+				}
+			}
+			if (white_move == false) {
+				std::cout << "BLACK";
+				count = 0;
+				bool safe_mode = false;
+				for (int i = 0; i < count_bot_move; i++) {
+					if (chess_board[bot_move[i][1]][bot_move[i][0]] == const_pos[1])
+						queen = true;
 					else
-						for (char i = 0; i < 12; i++) {
-							if (blacksprite[i].getGlobalBounds().contains(pos.x, pos.y))//и при этом координата курсора попадает в спрайт
-							{
-								coord_x = blacksprite[i].getPosition().x;
-								coord_y = blacksprite[i].getPosition().y;
-								dX = pos.x - blacksprite[i].getPosition().x;//делаем разность между позицией курсора и спрайта.для корректировки нажатия
-								dY = pos.y - blacksprite[i].getPosition().y;//тоже самое по игреку
-								isMove = true;//можем двигать спрайт
-								num = i;
-								std::cout << "black ";
-							}
-							if (king_blacksprite[i].getGlobalBounds().contains(pos.x, pos.y))//и при этом координата курсора попадает в спрайт
-							{
-								coord_x = king_blacksprite[i].getPosition().x;
-								coord_y = king_blacksprite[i].getPosition().y;
-								dX = pos.x - king_blacksprite[i].getPosition().x;//делаем разность между позицией курсора и спрайта.для корректировки нажатия
-								dY = pos.y - king_blacksprite[i].getPosition().y;//тоже самое по игреку
-								isMove = true;//можем двигать спрайт
-								num = i;
-								queen = true;
-								std::cout << "black king ";
-							}
-						}
-					pair res;
-					res = coordinate(pos.x);
-					num_x = res.one; coor_ceil_x = res.two;
-					res = coordinate(pos.y);
-					num_y = res.one; coor_ceil_y = res.two;
-					count = 0;
-					cut = false;
-					if (isMove) {
-						if (white_move) { //проверка на допустимые ходы
-							if (queen) {
-								if (num_y != 1) {
-									if (num_x != 8) {
-										if ((mass[(num_x + 1) * 10 + (num_y - 1)] == 1) || ((mass[(num_x + 1) * 10 + (num_y - 1)] == 3)))
-											if (num_y > 2)
-												if (num_x < 7)
-													if (mass[(num_x + 2) * 10 + (num_y - 2)] == 0) {
-														address_cell[count] = (num_x + 2) * 10 + (num_y - 2);
-														count += 1;
-														cut = true;
-													}
-										if (cut == false)
-											if (mass[(num_x + 1) * 10 + (num_y + 1)] == 0) {
-												address_cell[count] = (num_x + 1) * 10 + (num_y - 1);
-												count += 1;
-											}
-									}
-									if (num_x != 1) {
-										if ((mass[(num_x - 1) * 10 + (num_y - 1)] == 1) || (mass[(num_x - 1) * 10 + (num_y - 1)] == 3)) {
-											if (num_y > 2)
-												if (num_x > 2)
-													if (mass[(num_x - 2) * 10 + (num_y - 2)] == 0) {
-														address_cell[count] = (num_x - 2) * 10 + (num_y - 2);
-														count += 1;
-														cut = true;
-													}
-										}
-										if (cut == false)
-											if (mass[(num_x - 1) * 10 + (num_y - 1)] == 0) {
-												address_cell[count] = (num_x - 1) * 10 + (num_y - 1);
-												count += 1;
-											}
-
-									}
-								}
-							}
-							if (num_y != 8) {
-								if (num_x != 8) {
-									if ((mass[(num_x + 1) * 10 + (num_y + 1)] == 1) || (mass[(num_x + 1) * 10 + (num_y + 1)] == 3))
-										if (num_y < 7)
-											if (num_x < 7)
-												if (mass[(num_x + 2) * 10 + (num_y + 2)] == 0) {
-													address_cell[count] = (num_x + 2) * 10 + (num_y + 2);
-													count += 1;
-													cut = true;
-												}
-									if (cut == false)
-										if (mass[(num_x + 1) * 10 + (num_y + 1)] == 0) {
-											address_cell[count] = (num_x + 1) * 10 + (num_y + 1);
-											count += 1;
-										}
-								}
-								if (num_x != 1) {
-									if ((mass[(num_x - 1) * 10 + (num_y + 1)] == 1) || (mass[(num_x - 1) * 10 + (num_y + 1)] == 3)) {
-										if (num_y < 7)
-											if (num_x > 2)
-												if (mass[(num_x - 2) * 10 + (num_y + 2)] == 0) {
-													address_cell[count] = (num_x - 2) * 10 + (num_y + 2);
-													count += 1;
-													cut = true;
-												}
-									}
-									if (cut == false)
-										if (mass[(num_x - 1) * 10 + (num_y + 1)] == 0) {
-											address_cell[count] = (num_x - 1) * 10 + (num_y + 1);
-											count += 1;
-										}
-
-								}
-							}
+						queen = false;
+					res = check_move(white_move, queen, bot_move[i][0], bot_move[i][1], chess_board);
+					if (res.one) {
+						moved_bot[0][4] = 2;
+						moved_bot[0][0] = bot_move[i][0]; moved_bot[0][1] = bot_move[i][1];
+						moved_bot[0][2] = res.two[0][1]; moved_bot[0][3] = res.two[0][0];
+						count += 1;
+					}
+					count_res = 0;
+					while ((res.two[count_res][0] != -1) && (res.two[count_res][1] != -1)) {
+						safe = check_safe_move(res.two[count_res][0], res.two[count_res][1], chess_board);
+						if (safe) {
+							moved_bot[count][4] = 1;
+							moved_bot[count][0] = bot_move[i][0]; moved_bot[count][1] = bot_move[i][1];
+							moved_bot[count][2] = res.two[count_res][1]; moved_bot[count][3] = res.two[count_res][0];
+							count += 1;
 						}
 						else {
-							if (queen) {
-								if (num_y != 8) {
-									if (num_x != 8) {
-										if ((mass[(num_x + 1) * 10 + (num_y + 1)] == 2) || (mass[(num_x + 1) * 10 + (num_y + 1)] == 4)) {
-											if (num_y < 7)
-												if (num_x < 7)
-													if (mass[(num_x + 2) * 10 + (num_y + 2)] == 0) {
-														address_cell[count] = (num_x + 2) * 10 + (num_y + 2);
-														count += 1;
-														cut = true;
-													}
-										}
-										if (cut == false)
-											if (mass[(num_x + 1) * 10 + (num_y + 1)] == 0) {
-												address_cell[count] = (num_x + 1) * 10 + (num_y + 1);
-												count += 1;
-											}
-									}
-									if (num_x != 1) {
-										if ((mass[(num_x - 1) * 10 + (num_y + 1)] == 2) || (mass[(num_x - 1) * 10 + (num_y + 1)] == 4)) {
-											if (num_y < 7)
-												if (num_x > 2)
-													if (mass[(num_x - 2) * 10 + (num_y + 2)] == 0) {
-														address_cell[count] = (num_x - 2) * 10 + (num_y + 2);
-														count += 1;
-														cut = true;
-													}
-										}
-										if (cut == false)
-											if (mass[(num_x - 1) * 10 + (num_y + 1)] == 0) {
-												address_cell[count] = (num_x - 1) * 10 + (num_y + 1);
-												count += 1;
-											}
-									}
-								}
-							}
-							if (num_y != 1) {
-								if (num_x != 8) {
-									if ((mass[(num_x + 1) * 10 + (num_y - 1)] == 2) || (mass[(num_x + 1) * 10 + (num_y - 1)] == 4)) {
-										if (num_y > 2)
-											if (num_x < 7)
-												if (mass[(num_x + 2) * 10 + (num_y - 2)] == 0) {
-													address_cell[count] = (num_x + 2) * 10 + (num_y - 2);
-													count += 1;
-													cut = true;
-												}
-									}
-									if (cut == false)
-										if (mass[(num_x + 1) * 10 + (num_y - 1)] == 0) {
-											address_cell[count] = (num_x + 1) * 10 + (num_y - 1);
-											count += 1;
-										}
-								}
-								if (num_x != 1) {
-									if ((mass[(num_x - 1) * 10 + (num_y - 1)] == 2) || (mass[(num_x - 1) * 10 + (num_y - 1)] == 4)) {
-										if (num_y > 2)
-											if (num_x > 2)
-												if (mass[(num_x - 2) * 10 + (num_y - 2)] == 0) {
-													address_cell[count] = (num_x - 2) * 10 + (num_y - 2);
-													count += 1;
-													cut = true;
-												}
-									}
-									if (cut == false)
-										if (mass[(num_x - 1) * 10 + (num_y - 1)] == 0) {
-											address_cell[count] = (num_x - 1) * 10 + (num_y - 1);
-											count += 1;
-										}
-								}
-							}
+							moved_bot[count][4] = -1;
+							moved_bot[count][0] = bot_move[i][0]; moved_bot[count][1] = bot_move[i][1];
+							moved_bot[count][2] = res.two[count_res][1]; moved_bot[count][3] = res.two[count_res][0];
+							count += 1;
 						}
-						for (char i = count; (i < 4); i++) {
-							address_cell[count] = 0;
-						}
-						if (address_cell[0] != 0)
-							move = true;
+						count_res += 1;
 					}
-					if (move == false)
-						isMove = false;
 				}
-			if (move) {
-				if (event.type == Event::MouseButtonReleased)//если отпустили клавишу
-					if (event.key.code == Mouse::Left) {//а именно левую
-						isMove = false;
-						move = false;
-						pair res;
-						res = coordinate(pos.x);
-						num_x = res.one; coor_ceil_x = res.two;
-						res = coordinate(pos.y);
-						num_y = res.one; coor_ceil_y = res.two;
-						number = num_x * 10 + num_y;
-						number_end = number;
-						for (char i = 0; i < 4; i++) {
-							if ((num_x * 10 + num_y) == address_cell[i])
-								move = true;
+				if (moved_bot[0][4] == 2) {
+					num_x_start = moved_bot[0][0]; num_y_start = moved_bot[0][1];
+					num_x_end = moved_bot[0][2]; num_y_end = moved_bot[0][3];
+					if (chess_board[num_y_start][num_x_start] == const_pos[0]) {
+						answer = move_object(blacksprite, const_coords[num_x_start], const_coords[num_y_start]);
+						if (const_coords[num_y_end] < 123) {
+							carved_black[count_carv_black] = answer.num_spr;
+							count_carv_black += 1;
+							king_blacksprite[answer.num_spr].setPosition(const_coords[num_x_end], const_coords[num_y_end]);
+							blacksprite[answer.num_spr].setPosition(900, 900);
+							chess_board[num_y_end][num_x_end] = 3;
 						}
-						if (num != -1) {
-							if (move) {
-								if (white_move) {
-									if ((coor_ceil_y >= 651) && (queen == false)) {
-										upgrade_white += 1;
-										whitesprite[num].setPosition(900, 900);
-										carved_white[count_carv_white] = num;
-										count_carv_white += 1;
-										king_whitesprite[num].setPosition(coor_ceil_x, coor_ceil_y);
-										mass[number] = 4;
-									}
-									else {
-										if (queen) {
-											king_whitesprite[num].setPosition(coor_ceil_x, coor_ceil_y);
-											mass[number] = 4;
-										}
-										else {
-											whitesprite[num].setPosition(coor_ceil_x, coor_ceil_y);
-											mass[number] = 2;
-										}
-									}
-									white_move = false;
-									if (cut)
-										for (char i = 0; i < 12; i++) {
-											if (blacksprite[i].getGlobalBounds().contains(coord_x + ((coor_ceil_x - coord_x) / 2), coord_y + ((coor_ceil_y - coord_y) / 2))) {
-												blacksprite[i].setPosition(900, 900);
-												carved_black[count_carv_black] = i;
-												count_carv_black += 1;
-												res = coordinate(coord_x + ((coor_ceil_x - coord_x) / 2));
-												num_x = res.one; coor_ceil_x = res.two;
-												res = coordinate(coord_y + ((coor_ceil_y - coord_y) / 2));
-												num_y = res.one; coor_ceil_y = res.two;
-												mass[num_x * 10 + num_y] = 0;
-											}
-											if (king_blacksprite[i].getGlobalBounds().contains(coord_x + ((coor_ceil_x - coord_x) / 2), coord_y + ((coor_ceil_y - coord_y) / 2))) {
-												king_blacksprite[i].setPosition(900, 900);
-												carved_king_black[count_king_black] = i;
-												count_king_black += 1;
-												res = coordinate(coord_x + ((coor_ceil_x - coord_x) / 2));
-												num_x = res.one; coor_ceil_x = res.two;
-												res = coordinate(coord_y + ((coor_ceil_y - coord_y) / 2));
-												num_y = res.one; coor_ceil_y = res.two;
-												mass[num_x * 10 + num_y] = 0;
-											}
-										}
-								}
-								else {
-									if ((coor_ceil_y < 122) && (queen == false)) {
-										blacksprite[num].setPosition(900, 900);
-										upgrade_black += 1;
-										carved_black[count_carv_black] = num;
-										count_carv_black += 1;
-										king_blacksprite[num].setPosition(coor_ceil_x, coor_ceil_y);
-										mass[number] = 3;
-									}
-									else {
-										if (queen) {
-											king_blacksprite[num].setPosition(coor_ceil_x, coor_ceil_y);
-											mass[number] = 3;
-										}
-										else {
-											blacksprite[num].setPosition(coor_ceil_x, coor_ceil_y);
-											mass[number] = 1;
-										}
-									}
-									white_move = true;
-									if (cut)
-										for (char i = 0; i < 12; i++) {
-											if (whitesprite[i].getGlobalBounds().contains(coord_x + ((coor_ceil_x - coord_x) / 2), coord_y + ((coor_ceil_y - coord_y) / 2))) {
-												whitesprite[i].setPosition(900, 900);
-												carved_white[count_carv_white] = i;
-												count_carv_white += 1;
-												res = coordinate(coord_x + ((coor_ceil_x - coord_x) / 2));
-												num_x = res.one; coor_ceil_x = res.two;
-												res = coordinate(coord_y + ((coor_ceil_y - coord_y) / 2));
-												num_y = res.one; coor_ceil_y = res.two;
-												mass[num_x * 10 + num_y] = 0;
-											}
-											if (king_whitesprite[i].getGlobalBounds().contains(coord_x + ((coor_ceil_x - coord_x) / 2), coord_y + ((coor_ceil_y - coord_y) / 2))) {
-												king_whitesprite[i].setPosition(900, 900);
-												carved_king_white[count_king_white] = i;
-												count_king_white += 1;
-												res = coordinate(coord_x + ((coor_ceil_x - coord_x) / 2));
-												num_x = res.one; coor_ceil_x = res.two;
-												res = coordinate(coord_y + ((coor_ceil_y - coord_y) / 2));
-												num_y = res.one; coor_ceil_y = res.two;
-												mass[num_x * 10 + num_y] = 0;
-											}
-										}
-								}
-								res = coordinate(coord_x);
-								num_x = res.one; coor_ceil_x = res.two;
-								res = coordinate(coord_y);
-								num_y = res.one; coor_ceil_y = res.two;
-								mass[num_x * 10 + num_y] = 0;
-								number = num_x * 10 + num_y;
-								std::cout <<"move = "<< number<< "-" << number_end << "\n";
-								std::cout << count_carv_white;
-							}
-							else
-								if (white_move)
-									whitesprite[num].setPosition(coord_x, coord_y);
-								else
-									blacksprite[num].setPosition(coord_x, coord_y);
+						else {
+							blacksprite[answer.num_spr].setPosition(const_coords[num_x_end], const_coords[num_y_end]);
+							chess_board[num_y_end][num_x_end] = 1;
+							queen = false;
 						}
-						move = false;
-						queen = false;
 					}
-			}
-			if (isMove) {
-				if (white_move) {
-					if (queen)
-						king_whitesprite[num].setPosition(pos.x - dX, pos.y - dY);
+					else {
+						answer = move_object(king_blacksprite, const_coords[num_x_start], const_coords[num_y_start]);
+						king_blacksprite[answer.num_spr].setPosition(const_coords[num_x_end], const_coords[num_y_end]);
+						chess_board[num_y_end][num_x_end] = 3;
+						queen = true;
+					}
+					chess_board[num_y_start][num_x_start] = 0;
+					che_num = chess_board[num_y_start + (num_y_end - num_y_start) / 2][num_x_start + (num_x_end - num_x_start) / 2];
+					chess_board[num_y_start + (num_y_end - num_y_start) / 2][num_x_start + (num_x_end - num_x_start) / 2] = 0;
+					std::cout << "cutsss" << num_y_start + (num_y_end - num_y_start) / 2 << num_x_start + (num_x_end - num_x_start) / 2 << "vot";
+					if (che_num == 2) {
+						answer = move_object(whitesprite, const_coords[num_x_start + (num_x_end - num_x_start) / 2], const_coords[num_y_start + (num_y_end - num_y_start) / 2]);
+						carved_white[count_carv_white] = answer.num_spr;
+						whitesprite[answer.num_spr].setPosition(900, 900);
+						count_carv_white += 1;
+					}
+					if (che_num == 4) {
+						answer = move_object(king_whitesprite, const_coords[num_x_start + (num_x_end - num_x_start) / 2], const_coords[num_y_start + (num_y_end - num_y_start) / 2]);
+						carved_king_white[count_king_white] = answer.num_spr;
+						king_whitesprite[answer.num_spr].setPosition(900, 900);
+						count_king_white += 1;
+					}
+					res = check_move(white_move, queen, num_x_end, num_y_end, chess_board);
+					if (res.one)
+						white_move = false;
 					else
-						whitesprite[num].setPosition(pos.x - dX, pos.y - dY);
+						white_move = true;
 				}
 				else {
-					if (queen)
-						king_blacksprite[num].setPosition(pos.x - dX, pos.y - dY);
-					else
-						blacksprite[num].setPosition(pos.x - dX, pos.y - dY);
+					number = 0;
+					while ((moved_bot[number][4] != 1) && (number <= count)) {
+						number += 1;
+					}
+					num_x_start = moved_bot[number][0]; num_y_start = moved_bot[number][1];
+					num_x_end = moved_bot[number][2]; num_y_end = moved_bot[number][3];
+					if (chess_board[num_y_start][num_x_start] == const_pos[0]) {
+						answer = move_object(blacksprite, const_coords[num_x_start], const_coords[num_y_start]);
+						if (const_coords[num_y_end] < 123) {
+							carved_black[count_carv_black] = answer.num_spr;
+							count_carv_black += 1;
+							king_blacksprite[answer.num_spr].setPosition(const_coords[num_x_end], const_coords[num_y_end]);
+							blacksprite[answer.num_spr].setPosition(900, 900);
+							chess_board[num_y_end][num_x_end] = 3;
+						}
+						else {
+							blacksprite[answer.num_spr].setPosition(const_coords[num_x_end], const_coords[num_y_end]);
+							chess_board[num_y_end][num_x_end] = 1;
+						}
+					}
+					else {
+						answer = move_object(king_blacksprite, const_coords[num_x_start], const_coords[num_y_start]);
+						king_blacksprite[answer.num_spr].setPosition(const_coords[num_x_end], const_coords[num_y_end]);
+						chess_board[num_y_end][num_x_end] = 3;
+					}
+					chess_board[num_y_start][num_x_start] = 0;
+					white_move = true;
 				}
 			}
-		}
+			if ((event.type == Event::MouseButtonPressed) && (event.key.code == Mouse::Left)) {//если нажата клавиша мыши//а именно левая
+				for (char i = 0; i < 8; i++)
+					for (char j = 0; j < 8; j++)
+						mapsprite[i][j].setColor(Color::White);
+				isMove = false;
+				if (white_move) {
+					answer = move_object(whitesprite, pos.x, pos.y);
+					isMove = answer.isMov;
+					if (isMove != true) {
+						answer = move_object(king_whitesprite, pos.x, pos.y);
+						isMove = answer.isMov;
+						if (isMove == true) {
+							coord_x = answer.start_x; coord_y = answer.start_y;
+							dX = answer.mov_x; dY = answer.mov_y;
+							num = answer.num_spr;
+							queen = true;
+						}
+					}
+					else {
+						coord_x = answer.start_x; coord_y = answer.start_y;
+						dX = answer.mov_x; dY = answer.mov_y;
+						num = answer.num_spr;
+						queen = false;
+					}
+				}
+				ret = coordinate(coord_x);
+				num_x_start = ret.one;
+				ret = coordinate(coord_y);
+				num_y_start = ret.one;
+				if (cut_mode) {
+					count = 0;
+					isMove = false;
+					for (int i = 0; i < count_cut;i++) {
+						if ((mass_cut[i][0] == num_x_start) && (mass_cut[i][1] == num_y_start))
+							isMove = true;
+					}
+				}
+				if (isMove) {
+					res = check_move(white_move, queen, num_x_start, num_y_start, chess_board);
+					count_res = 0;
+					while ((res.two[count_res][0] != -1) && (res.two[count_res][1] != -1)) {
+						mapsprite[res.two[count_res][0]][res.two[count_res][1]].setColor(Color::Red);
+						count_res += 1;
+					}
+				}
+			}
+			if ((event.type == Event::MouseButtonReleased) && (isMove) && (event.key.code == Mouse::Left)) {//если отпустили клавишу//а именно левую
+				isMove = false;
+				std::cout << "WHITE";
+				move = false;
+				count_res = 0;
+				while ((res.two[count_res][0] != -1) && (res.two[count_res][1] != -1)) {
+					mapsprite[res.two[count_res][0]][res.two[count_res][1]].setColor(Color::White);
+					count_res += 1;
+				}
+				ret = coordinate(coord_x);
+				num_x_start = ret.one;
+				ret = coordinate(coord_y);
+				num_y_start = ret.one;
+				res = check_move(white_move, queen, num_x_start, num_y_start, chess_board);
+				cut = res.one;
+				ret = coordinate(pos.x);
+				num_x_end = ret.one; coor_ceil_x = ret.two;
+				ret = coordinate(pos.y);
+				num_y_end = ret.one; coor_ceil_y = ret.two;
+				for (char l = 0; l < 4; l++)
+					if ((res.two[l][0] == num_y_end) && (res.two[l][1] == num_x_end)) {
+						move = true;
+					}
+				if (move) {
+					if (queen == false) {
+						if (coor_ceil_y >= 651) {
+							chess_board[num_y_end][num_x_end] = 4;
+							carved_white[count_carv_white] = num;
+							whitesprite[num].setPosition(900, 900);
+							king_whitesprite[num].setPosition(coor_ceil_x, coor_ceil_y);
+							count_carv_white += 1;
+						}
+						else {
+							whitesprite[num].setPosition(coor_ceil_x, coor_ceil_y);
+							chess_board[num_y_end][num_x_end] = 2;
+						}
+						chess_board[num_y_start][num_x_start] = 0;
+						if (cut) {
+							std::cout << "cutsss" << num_y_start + (num_y_end - num_y_start) / 2 << num_x_start + (num_x_end - num_x_start) / 2 << "vot";
+							che_num = chess_board[num_y_start + (num_y_end - num_y_start) / 2][num_x_start + (num_x_end - num_x_start) / 2];
+							chess_board[num_y_start + (num_y_end - num_y_start) / 2][num_x_start + (num_x_end - num_x_start) / 2] = 0;
+							if (che_num == 1) {
+								answer = move_object(blacksprite, coord_x + (coor_ceil_x - coord_x) / 2, coord_y + (coor_ceil_y - coord_y) / 2);
+								carved_black[count_carv_black] = answer.num_spr;
+								count_carv_black += 1;
+								blacksprite[answer.num_spr].setPosition(900, 900);
+							}
+							if (che_num == 3) {
+								answer = move_object(king_blacksprite, coord_x + (coor_ceil_x - coord_x) / 2, coord_y + (coor_ceil_y - coord_y) / 2);
+								carved_king_black[count_king_black] = answer.num_spr;
+								count_king_black += 1;
+								king_blacksprite[answer.num_spr].setPosition(900, 900);
+							}
+							res = check_move(white_move, queen, num_x_end, num_y_end, chess_board);
+							cut_mode = false;
+							if (res.one) {
+								number_el = num;
+							}
+							else
+								white_move = false;
+						}
+						else
+							white_move = false;
+					}
+					else {
+						king_whitesprite[num].setPosition(coor_ceil_x, coor_ceil_y);
+						chess_board[num_y_start][num_x_start] = 0;
+						chess_board[num_y_end][num_x_end] = 4;
+						if (cut) {
+							che_num = chess_board[num_y_start + (num_y_end - num_y_start) / 2][num_x_start + (num_x_end - num_x_start) / 2];
+							chess_board[num_y_start + (num_y_end - num_y_start) / 2][num_x_start + (num_x_end - num_x_start) / 2] = 0;
+							if (che_num == 1) {
+								answer = move_object(blacksprite, coord_x + (coor_ceil_x - coord_x) / 2, coord_y + (coor_ceil_y - coord_y) / 2);
+								carved_black[count_carv_black] = answer.num_spr;
+								count_carv_black += 1;
+								blacksprite[answer.num_spr].setPosition(900, 900);
+							}
+							if (che_num == 3) {
+								answer = move_object(king_blacksprite, coord_x + (coor_ceil_x - coord_x) / 2, coord_y + (coor_ceil_y - coord_y) / 2);
+								carved_king_black[count_king_black] = answer.num_spr;
+								count_king_black += 1;
+								king_blacksprite[answer.num_spr].setPosition(900, 900);
+							}
+							res = check_move(white_move, queen, coor_ceil_x, coor_ceil_y, chess_board);
+							if (res.one) {
+								//cut_mode = true;
+								number_el = num;
+							}
+							else
+								white_move = false;
+						}
+						else
+							white_move = false;
+					}
+				}
+				else {
+					if (white_move) {
+						if (queen)
+							king_whitesprite[num].setPosition(coord_x, coord_y);
+						else
+							whitesprite[num].setPosition(coord_x, coord_y);
+					}
+				}
+				move = false;
+				num = -1;
+			}
+			if ((isMove) && (white_move)) {
+				if (queen)
+					king_whitesprite[num].setPosition(pos.x - dX, pos.y - dY);
+				else
+					whitesprite[num].setPosition(pos.x - dX, pos.y - dY);
+			}
+		}		
 		window.clear();
-		window.draw(mapssprite);
+		window.draw(mapsprite_wall);
+		for (char i = 0; i < 8; i++)
+			for (char j = 0; j < 8; j++) {
+				if ((i % 2 == 0) && (j % 2 == 0))
+					window.draw(mapsprite[i][j]);
+				if ((i % 2 != 0) && (j % 2 != 0))
+					window.draw(mapsprite[i][j]);
+			}
 		for (char i = 0; i < 12; i++) {
 			draw = true;
 			for (char j = 0; j < count_king_white; j++) {
@@ -524,12 +657,14 @@ int main() {
 				window.draw(blacksprite[i]);
 		}
 		if ((count_carv_white - upgrade_white + count_king_white) == 12) {
-			std::cout << "BLACK WIN";
-			window.close();
+			text.setPosition(300, 350);//задаем позицию текста, центр камеры
+			text.setString("BOT WIN");//задает строку тексту
+			window.draw(text);//рисую этот текст
 		}
 		if ((count_carv_black - upgrade_black + count_king_black) == 12) {
-			std::cout << "WHITE WIN";
-			window.close();
+			text.setPosition(300, 350);//задаем позицию текста, центр камеры
+			text.setString("Player WIN");//задает строку тексту
+			window.draw(text);//рисую этот текст
 		}
 		window.display();
 	}
